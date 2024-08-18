@@ -1,7 +1,7 @@
 {
-  "name": "logseq-starter-plugin",
-  "version": "1.0",
-  "description": "Starter Plugin",
+  "name": "page-reference-to-text",
+  "version": "0.1",
+  "description": "A plugin that converts Page References to text to allow for easy export.",
   "main": "dist/index.html",
   "targets": {
     "main": false
@@ -11,14 +11,14 @@
     "build": "parcel build --no-source-maps index.html --public-url ./"
   },
   "keywords": [],
-  "author": "Aryan Sawhney",
+  "author": "B.Finch",
   "license": "MIT",
   "dependencies": {
-    "@logseq/libs": "0.0.1-alpha.34"
+    "@logseq/libs": "^0.0.17"
   },
   "logseq": {
-    "id": "logseq-starter-plugin",
-    "title": "logseq-starter-plugin",
+    "id": "page-reference-to-text",
+    "title": "page-reference-to-text",
     "icon": "./icon.png"
   },
   "devDependencies": {

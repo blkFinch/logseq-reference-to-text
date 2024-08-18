@@ -1,2 +1,2 @@
-# logseq-plugin-starter-template
-A quick and easy to use template to get you going from the get go
+# Reference to Text
+A plugin that converts Page References to text to allow for easy export.
