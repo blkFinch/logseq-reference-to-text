@@ -1,5 +1,9 @@
 import '@logseq/libs';
 
+// TODO: clean up and comment this logic for filtering results
+// TODO: print the blocks to the page
+// TODO: create a new page for the exported refs and print blocks there
+
 //Inputs 5 numbered blocks when called
 async function raferencesToText(e) {
   const currentPage = await logseq.Editor.getCurrentPage();
@@ -71,7 +75,7 @@ function correctJsonString(jsonStr) {
 
 const main = async () => {
   console.log('PageRefToText loaded!');
-  logseq.Editor.registerSlashCommand('printReferences', async (e) => {
+  logseq.Editor.registerSlashCommand('export references', async (e) => {
     raferencesToText(e);
   });
 };
