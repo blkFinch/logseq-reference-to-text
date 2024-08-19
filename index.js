@@ -3,15 +3,54 @@ import '@logseq/libs';
 // TODO: clean up and comment this logic for filtering results
 // TODO: print the blocks to the page
 // TODO: create a new page for the exported refs and print blocks there
+// TODO: handle no properties case
 
 //Inputs 5 numbered blocks when called
 async function raferencesToText(e) {
   const currentPage = await logseq.Editor.getCurrentPage();
   console.log('currentPage', currentPage);
 
+  const [includeFilter, excludeFilter] = returnTrueAndFalseFilters(currentPage);
+  console.log('includeFilter', includeFilter);
+  console.log('excludeFilter', excludeFilter);
+  const refs = await logseq.Editor.getPageLinkedReferences(currentPage.originalName);
+
+  //sorts by the journalDay property otherwise sort to bottom for non journal pages
+  const sortedRefs = refs.sort((a, b) => {
+    const journalDayA = a['0']?.journalDay ?? -1;
+    const journalDayB = b['0']?.journalDay ?? -1;
+
+    return journalDayA - journalDayB;
+  });
+
+  console.log('sorted data', sortedRefs);
+
+  const filteredData = sortedRefs.filter((item) => {
+    const itemName = item[0].name; // Extract the name from the sortedData
+    if (excludeFilter.includes(itemName)) {
+      return false; // Exclude items with names in falseFilters
+    }
+    if (includeFilter.length === 0) {
+      return true; // If no true filters, include all
+    }
+    return includeFilter.includes(itemName); // Include items with names in trueFilters
+  });
+
+  console.log('filtered Data', filteredData);
+}
+
+function returnTrueAndFalseFilters(page) {
+  const trueFilters = [];
+  const falseFilters = [];
+
+  const hasFilters = !!page.properties?.filters;
+  console.log('hasFilters', hasFilters);
+  if (!hasFilters) {
+    return [trueFilters, falseFilters];
+  }
   // Extract the filters property
-  const filtersString = JSON.stringify(currentPage.properties.filters);
-  const correctedString = correctJsonString(filtersString);
+  const filters = page.properties?.filters || '{}';
+  const correctedString = correctJsonString(filters);
   console.log('corrected string', correctedString);
 
   //need to double parse because the string is double stringified above
@@ -22,22 +61,6 @@ async function raferencesToText(e) {
   console.log('object type', typeof filtersObject);
   // console.log('object properties', Object.entries(filtersObject));
 
-  const refs = await logseq.Editor.getPageLinkedReferences(currentPage.originalName);
-
-  const sortedRefs = refs.sort((a, b) => {
-    // Get the journalDay for comparison, default to -1 if not present
-    const journalDayA = a['0']?.journalDay ?? -1;
-    const journalDayB = b['0']?.journalDay ?? -1;
-
-    return journalDayA - journalDayB;
-  });
-
-  console.log('sorted data', sortedRefs);
-
-  // Convert the filtersObject to arrays of names with true and false values
-  const trueFilters = [];
-  const falseFilters = [];
-
   for (const [name, value] of Object.entries(filtersObject)) {
     if (value) {
       trueFilters.push(name);
@@ -46,18 +69,7 @@ async function raferencesToText(e) {
     }
   }
 
-  const filteredData = sortedRefs.filter((item) => {
-    const itemName = item[0].name; // Extract the name from the sortedData
-    if (falseFilters.includes(itemName)) {
-      return false; // Exclude items with names in falseFilters
-    }
-    if (trueFilters.length === 0) {
-      return true; // If no true filters, include all
-    }
-    return trueFilters.includes(itemName); // Include items with names in trueFilters
-  });
-
-  console.log('filtered Data', filteredData);
+  return [trueFilters, falseFilters];
 }
 
 function correctJsonString(jsonStr) {
