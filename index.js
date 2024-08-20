@@ -3,7 +3,6 @@ import '@logseq/libs';
 // TODO: clean up and comment this logic for filtering results
 // TODO: print the blocks to the page
 // TODO: create a new page for the exported refs and print blocks there
-// TODO: handle no properties case
 
 //Inputs 5 numbered blocks when called
 async function raferencesToText(e) {
@@ -13,7 +12,7 @@ async function raferencesToText(e) {
   const [includeFilter, excludeFilter] = returnTrueAndFalseFilters(currentPage);
   console.log('includeFilter', includeFilter);
   console.log('excludeFilter', excludeFilter);
-  const refs = await logseq.Editor.getPageLinkedReferences(currentPage.originalName);
+  const refs = await logseq.Editor.getPageLinkedReferences(currentPage.name);
 
   //sorts by the journalDay property otherwise sort to bottom for non journal pages
   const sortedRefs = refs.sort((a, b) => {
@@ -37,7 +36,13 @@ async function raferencesToText(e) {
   });
 
   console.log('filtered Data', filteredData);
+
+  filteredData.forEach(async (note) => {
+    const block = await logseq.Editor.appendBlockInPage(currentPage.name, note[0].originalName)
+    logseq.Editor.insertBatchBlock(block.uuid, note[1]);
+  });
 }
+
 
 function returnTrueAndFalseFilters(page) {
   const trueFilters = [];
