@@ -8,6 +8,7 @@ import '@logseq/libs';
 async function raferencesToText(e) {
   const currentPage = await logseq.Editor.getCurrentPage();
   console.log('currentPage', currentPage);
+  if (!!!currentPage) { return; }
 
   const [includeFilter, excludeFilter] = returnTrueAndFalseFilters(currentPage);
   console.log('includeFilter', includeFilter);
@@ -39,7 +40,21 @@ async function raferencesToText(e) {
 
   filteredData.forEach(async (note) => {
     const block = await logseq.Editor.appendBlockInPage(currentPage.name, note[0].originalName)
-    logseq.Editor.insertBatchBlock(block.uuid, note[1]);
+    const childBlocks = await logseq.Editor.insertBatchBlock(block.uuid, note[1], { sibling: false });
+    console.log('childBlocks', childBlocks);
+    const childBlockIds = childBlocks.map((childBlock) => childBlock.id);
+
+    childBlocks.forEach(async (childBlock) => {
+      if (childBlock.parent.id !== block.id) {
+        if (!childBlockIds.includes(childBlock.parent.id)) {
+          console.log('skipping', childBlock);
+          console.log('parent', childBlock.parent, 'not found int ', childBlockIds);
+          return; // Skip childBlock if parent.id is not included in childBlockIds
+        }
+        console.log('moving', childBlock);
+        await logseq.Editor.moveBlock(childBlock.id, childBlock.parent.id, { children: true });
+      }
+    });
   });
 }
 
@@ -92,7 +107,7 @@ function correctJsonString(jsonStr) {
 
 const main = async () => {
   console.log('PageRefToText loaded!');
-  logseq.Editor.registerSlashCommand('export references', async (e) => {
+  logseq.Editor.registerSlashCommand('ref to text', async (e) => {
     raferencesToText(e);
   });
 };
