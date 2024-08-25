@@ -1,20 +1,24 @@
 import '@logseq/libs';
 
 // TODO: clean up and comment this logic for filtering results
-// TODO: print the blocks to the page
 // TODO: create a new page for the exported refs and print blocks there
+// TODO: nest child blocks, and confirm that child blocks can be nested recursively
+//TODO: research https://github.com/stdword/logseq13-missing-commands/blob/main/src/commands/index.ts
 
 //Inputs 5 numbered blocks when called
-async function raferencesToText(e) {
+async function referencesToText(e) {
   const currentPage = await logseq.Editor.getCurrentPage();
   console.log('currentPage', currentPage);
-  if (!!!currentPage) { return; }
+  if (!!!currentPage) {
+    return;
+  }
 
   const [includeFilter, excludeFilter] = returnTrueAndFalseFilters(currentPage);
   console.log('includeFilter', includeFilter);
   console.log('excludeFilter', excludeFilter);
   const refs = await logseq.Editor.getPageLinkedReferences(currentPage.name);
-
+  //strip weird pages out of this. everything should be an array where [0] is the page and [1] is the blocks
+  console.log('refs', refs);
   //sorts by the journalDay property otherwise sort to bottom for non journal pages
   const sortedRefs = refs.sort((a, b) => {
     const journalDayA = a['0']?.journalDay ?? -1;
@@ -26,7 +30,8 @@ async function raferencesToText(e) {
   console.log('sorted data', sortedRefs);
 
   const filteredData = sortedRefs.filter((item) => {
-    const itemName = item[0].name; // Extract the name from the sortedData
+    const itemName = item[0].name || ''; // Extract the name from the sortedData
+
     if (excludeFilter.includes(itemName)) {
       return false; // Exclude items with names in falseFilters
     }
@@ -39,8 +44,13 @@ async function raferencesToText(e) {
   console.log('filtered Data', filteredData);
 
   filteredData.forEach(async (note) => {
-    const block = await logseq.Editor.appendBlockInPage(currentPage.name, note[0].originalName)
-    const childBlocks = await logseq.Editor.insertBatchBlock(block.uuid, note[1], { sibling: false });
+    const block = await logseq.Editor.appendBlockInPage(currentPage.name, note[0].originalName);
+    //I will have to make a custom version of this method that properly nests the blocks
+    await logseq.Editor.insertBatchBlock(block.uuid, note[1], {
+      sibling: false,
+    });
+
+    const childBlocks = note[1];
     console.log('childBlocks', childBlocks);
     const childBlockIds = childBlocks.map((childBlock) => childBlock.id);
 
@@ -48,16 +58,18 @@ async function raferencesToText(e) {
       if (childBlock.parent.id !== block.id) {
         if (!childBlockIds.includes(childBlock.parent.id)) {
           console.log('skipping', childBlock);
-          console.log('parent', childBlock.parent, 'not found int ', childBlockIds);
           return; // Skip childBlock if parent.id is not included in childBlockIds
         }
         console.log('moving', childBlock);
-        await logseq.Editor.moveBlock(childBlock.id, childBlock.parent.id, { children: true });
+        const parent = childBlocks.find((item) => item.id === childBlock.parent.id);
+        await logseq.Editor.insertBlock(parent.uuid, childBlock.content, {
+          sibling: false,
+          properties: childBlock.properties,
+        });
       }
     });
   });
 }
-
 
 function returnTrueAndFalseFilters(page) {
   const trueFilters = [];
@@ -70,12 +82,13 @@ function returnTrueAndFalseFilters(page) {
   }
   // Extract the filters property
   const filters = page.properties?.filters || '{}';
+  console.log('filters', filters);
   const correctedString = correctJsonString(filters);
   console.log('corrected string', correctedString);
 
   //need to double parse because the string is double stringified above
   // see: https://stackoverflow.com/questions/42494823/json-parse-returns-string-instead-of-object
-  const filtersObject = JSON.parse(JSON.parse(correctedString));
+  const filtersObject = JSON.parse(correctedString);
 
   console.log('object', filtersObject);
   console.log('object type', typeof filtersObject);
@@ -108,7 +121,7 @@ function correctJsonString(jsonStr) {
 const main = async () => {
   console.log('PageRefToText loaded!');
   logseq.Editor.registerSlashCommand('ref to text', async (e) => {
-    raferencesToText(e);
+    referencesToText(e);
   });
 };
 
